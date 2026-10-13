@@ -1,44 +1,45 @@
 # Ask the Database
 
-Ứng dụng web tự động chuyển đổi câu hỏi ngôn ngữ tự nhiên (tiếng Việt/tiếng Anh) thành truy vấn SQL an toàn, thực thi trực tiếp trên cơ sở dữ liệu PostgreSQL của cửa hàng và hiển thị kết quả trực quan.
+Ứng dụng web chuyển đổi câu hỏi tự nhiên (tiếng Việt hoặc tiếng Anh) thành truy vấn SQL, thực thi trực tiếp trên cơ sở dữ liệu PostgreSQL của cửa hàng và hiển thị kết quả dạng bảng trên giao diện.
 
-Dự án được xây dựng theo kiến trúc phân tầng (3-Layer Architecture), giao diện **Minimalism** hiện đại, cơ chế phòng thủ **Read-Only 3 tầng**, tự động **Retry 3 lần** khi gặp lỗi cú pháp SQL và cam kết **hệ thống không bao giờ crash**.
+Dự án được tổ chức theo kiến trúc ba tầng (Controllers – Services – Infrastructure), giao diện tối giản (Minimalism), cơ chế bảo vệ dữ liệu chỉ đọc ba lớp (Prompt – Backend Sanitizer – PostgreSQL Role), cơ chế tự động thử lại tối đa ba lần khi gặp lỗi truy vấn, và bộ xử lý lỗi tập trung ngăn ứng dụng dừng đột ngột.
 
 ---
 
-## 1. Hướng dẫn Khởi chạy (How to Run)
+## 1. Hướng dẫn khởi chạy
 
-### Yêu cầu Tiền đề (Prerequisites)
-- **Node.js**: v18+ (khuyên dùng v20 hoặc v22)
-- **Docker**: Docker Desktop đang hoạt động
+### Yêu cầu môi trường
+- Node.js: phiên bản 18 trở lên (khuyến nghị phiên bản 20 hoặc 22)
+- Docker: Docker Desktop đang chạy
 
-### Bước 1: Khởi động Database PostgreSQL trên Docker
-Chạy container và nạp dữ liệu mẫu ban đầu:
+### Bước 1: Khởi động cơ sở dữ liệu PostgreSQL trên Docker
+Khởi chạy container và nạp dữ liệu mẫu ban đầu:
 ```bash
-# 1. Khởi chạy PostgreSQL container
+# 1. Khởi chạy container PostgreSQL
 docker run -d --name shop-db -p 5432:5432 \
   -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=shop \
   postgres:16
 
-# 2. Nạp dữ liệu mẫu (seed data)
+# 2. Nạp dữ liệu mẫu (700 đơn hàng)
 docker exec -i shop-db psql -U postgres -d shop < candidate/seed.sql
 
-# 3. Tạo tài khoản Read-Only và thiết lập giới hạn bảo mật (timeout 5s)
+# 3. Tạo tài khoản chỉ đọc và thiết lập giới hạn an toàn (thời gian chờ 5 giây)
 docker exec -i shop-db psql -U postgres -d shop < scripts/setup-db.sql
 ```
 
-### Bước 2: Cấu hình Biến môi trường (`.env`)
-Tạo file `.env` tại thư mục gốc từ mẫu `.env.example`:
+### Bước 2: Thiết lập biến môi trường
+Tạo tệp `.env` tại thư mục gốc từ mẫu `.env.example`:
 ```bash
 cp .env.example .env
 ```
-Nội dung file `.env`:
+
+Nội dung tệp `.env`:
 ```env
-# Server Configuration
+# Cấu hình máy chủ
 PORT=5000
 NODE_ENV=development
 
-# Database Configuration (Sử dụng user shop_readonly an toàn)
+# Cấu hình cơ sở dữ liệu (sử dụng tài khoản shop_readonly)
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=shop
@@ -46,104 +47,104 @@ POSTGRES_USER=shop_readonly
 POSTGRES_PASSWORD=shop_readonly_secret
 DATABASE_URL=postgresql://shop_readonly:shop_readonly_secret@localhost:5432/shop
 
-# LLM Configuration (Google Gen AI SDK)
+# Cấu hình mô hình ngôn ngữ (Google Gen AI SDK)
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 
-# Query Constraints & Session
+# Giới hạn truy vấn và phiên làm việc
 MAX_QUERY_ROWS=100
 QUERY_TIMEOUT_MS=5000
 MAX_RETRY_ATTEMPTS=3
 SESSION_TTL_MS=1800000
 ```
-*(Ghi chú: Thay `your_gemini_api_key_here` bằng Google Gemini API Key của bạn).*
+*(Lưu ý: Thay `your_gemini_api_key_here` bằng khóa API Google Gemini của bạn).*
 
-### Bước 3: Cài đặt Dependencies & Khởi chạy Ứng dụng
+### Bước 3: Cài đặt thư viện và khởi chạy ứng dụng
 ```bash
-# Cài đặt toàn bộ dependencies cho root, server và client
+# Cài đặt thư viện cho thư mục gốc, máy chủ và giao diện
 npm install
 cd server && npm install && cd ../client && npm install && cd ..
 
-# Chạy đồng thời Server (cổng 5000) và Client (cổng 3000)
+# Khởi chạy đồng thời máy chủ (cổng 5000) và giao diện (cổng 3000)
 npm run dev
 ```
 
-Mở trình duyệt tại: **http://localhost:3000**
+Truy cập ứng dụng tại địa chỉ: **http://localhost:3000**
 
-### Bước 4: Chạy Toàn bộ Test Suite
-Dự án có đầy đủ **26 Unit & Integration Tests** (chạy trên PostgreSQL Docker thật):
+### Bước 4: Chạy kiểm thử tự động
+Dự án bao gồm 26 bài kiểm thử đơn vị và kiểm thử tích hợp (thực thi trực tiếp trên cơ sở dữ liệu Docker):
 ```bash
 npm test
 ```
 
 ---
 
-## 2. LLM & SDK Sử dụng
+## 2. Mô hình ngôn ngữ và bộ công cụ kết nối
 
-- **SDK**: `@google/genai` (Google Gen AI SDK chính thức phiên bản mới nhất).
-- **Mô hình (Model)**: `gemini-2.5-flash` (hoặc `gemini-2.5-pro` tùy cấu hình trong `.env`).
-- **Cơ chế Structured Output**: Sử dụng JSON Schema của SDK (`responseMimeType: 'application/json'`, `responseSchema`) để đảm bảo Gemini trả về đúng cấu trúc dữ liệu 100%, không bị vướng markdown thừa.
+- **Bộ công cụ (SDK)**: `@google/genai` (Google Gen AI SDK chính thức).
+- **Mô hình (Model)**: `gemini-2.5-flash` (hoặc `gemini-2.5-pro` theo cấu hình trong `.env`).
+- **Cơ chế phản hồi có cấu trúc (Structured Output)**: Thiết lập lược đồ JSON qua tham số `responseMimeType: 'application/json'` và `responseSchema` của SDK nhằm đảm bảo phản hồi luôn tuân thủ đúng định dạng dữ liệu, tránh phát sinh văn bản thừa ngoài cấu trúc.
 
 ---
 
-## 3. Cách Ứng dụng Xử lý các Câu hỏi 5–8 và Lý do (Questions 5–8)
+## 3. Cách xử lý các câu hỏi từ 5 đến 8 và lý do thiết kế
 
-Đề bài nêu rõ: *"Not every question has a normal answer. Decide what your app should do."* Hệ thống xử lý các trường hợp đặc biệt như sau:
+Đề bài đặt ra yêu cầu: *"Not every question has a normal answer. Decide what your app should do."* Hệ thống tiếp cận các trường hợp đặc biệt này như sau:
 
-| Câu hỏi | Hành vi của Ứng dụng | Lý do thiết kế |
+| Câu hỏi | Hành vi của ứng dụng | Lý do thiết kế |
 | :--- | :--- | :--- |
-| **5. List all orders from 2024** | Sinh câu lệnh SQL lọc năm 2024 chuẩn xác (`WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31'`). Database thực thi và trả về **0 dòng**. Giao diện hiển thị bảng trống kèm thông báo thân thiện và gợi ý xem đơn hàng năm 2025. | Tập dữ liệu mẫu (`seed.sql`) chỉ có dữ liệu từ `2025-01-01` đến `2026-10-12`. Việc sinh SQL đúng thời gian lọc giúp hệ thống hoạt động tự nhiên, không phỏng đoán bừa bãi. |
-| **6. Show employee salaries** | Mô hình AI phát hiện bảng không tồn tại trong schema, đặt `sql: null`, và giải thích rõ ràng: *"Cơ sở dữ liệu chỉ chứa thông tin khách hàng, sản phẩm và đơn hàng, không có bảng lưu lương nhân viên."* Kèm câu hỏi gợi ý chuyển hướng. | Ngăn chặn hiện tượng ảo giác (Hallucination) tự bịa bảng hoặc cột không có thật, giúp người dùng hiểu rõ phạm vi dữ liệu hiện có. |
-| **7. Delete all cancelled orders** | Từ chối ngay lập tức: đặt `sql: null`, bật cờ `isRefusal: true`, và giải thích: *"Yêu cầu bị từ chối vì hệ thống hoạt động ở chế độ Chỉ đọc (Read-Only)."* Đồng thời gợi ý người dùng xem danh sách đơn hủy thay vì xóa. Nếu có cố tình bypass, PostgreSQL role `shop_readonly` và bộ lọc an toàn đa tầng sẽ chặn đứng. | Tuân thủ tuyệt đối quy tắc cốt lõi: **Ứng dụng không bao giờ được thay đổi hay xóa dữ liệu**. |
-| **8. What is the best product?** | Nhận diện câu hỏi có tính chủ quan/mơ hồ: bật cờ `isAmbiguous: true`, đưa ra giả định mặc định (tính theo tổng doanh thu từ các đơn hàng đã thanh toán), sinh SQL cho giả định này, đồng thời đưa ra **Câu hỏi làm rõ (Follow-up Question)**: *"Bạn muốn đánh giá theo tổng doanh thu hay số lượng bán ra?"* | Thay vì từ chối hoặc trả về kết quả mập mờ, ứng dụng vừa cung cấp câu trả lời hữu ích tức thì, vừa mở ra hướng tương tác follow-up trong session hội thoại. |
+| **5. List all orders from 2024** | Tạo truy vấn lọc dữ liệu năm 2024 (`WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31'`). Cơ sở dữ liệu thực thi và trả về 0 dòng kết quả. Giao diện hiển thị bảng trống kèm thông báo giải thích dữ liệu trong hệ thống chỉ bắt đầu từ năm 2025 và gợi ý xem đơn hàng năm 2025. | Tập dữ liệu mẫu (`seed.sql`) chỉ có đơn hàng từ `2025-01-01` đến `2026-10-12`. Việc tạo truy vấn chính xác theo yêu cầu người dùng giúp hệ thống phản ánh đúng thực tế dữ liệu thay vì tự ý suy diễn. |
+| **6. Show employee salaries** | Nhận diện bảng lương nhân viên không tồn tại trong lược đồ cơ sở dữ liệu; đặt `sql: null`, giải thích cơ sở dữ liệu hiện tại chỉ lưu trữ khách hàng, sản phẩm và đơn hàng, đồng thời gợi ý chuyển sang các thông tin sẵn có. | Tránh hiện tượng mô hình tự bịa bảng hoặc cột không tồn tại, giúp người dùng nắm rõ giới hạn phạm vi thông tin của hệ thống. |
+| **7. Delete all cancelled orders** | Từ chối thực hiện câu lệnh xóa dữ liệu; đặt `sql: null`, gắn cờ `isRefusal: true`, giải thích hệ thống hoạt động ở chế độ chỉ đọc và gợi ý người dùng xem danh sách các đơn hàng đã hủy. Nếu câu lệnh tìm cách vượt qua bộ lọc ứng dụng, vai trò `shop_readonly` tại PostgreSQL vẫn ngăn chặn trực tiếp ở tầng cơ sở dữ liệu. | Tuân thủ yêu cầu bắt buộc: **Hệ thống không bao giờ được sửa đổi hoặc xóa dữ liệu**. |
+| **8. What is the best product?** | Xác định câu hỏi mang tính định tính và chưa rõ tiêu chí; gắn cờ `isAmbiguous: true`, thiết lập giả định mặc định (tính theo tổng doanh thu từ các đơn hàng thành công), tạo truy vấn cho giả định này, đồng thời đưa ra câu hỏi gợi ý làm rõ: *"Bạn muốn đánh giá theo tổng doanh thu hay số lượng bán ra?"* | Thay vì từ chối hoặc trả về kết quả mập mờ, ứng dụng vừa cung cấp câu trả lời tham khảo tức thì, vừa mở hướng tương tác làm rõ trong phiên trao đổi. |
 
 ---
 
-## 4. Cách sử dụng Công cụ AI Coding (AI Tools Usage)
+## 4. Cách sử dụng công cụ AI trong quá trình phát triển
 
-> Chi tiết từng lượt hỏi - đáp được lưu lại tại [AI_COLLABORATION_LOG.md](AI_COLLABORATION_LOG.md).
+> Chi tiết từng lượt trao đổi được lưu tại tệp [AI_COLLABORATION_LOG.md](AI_COLLABORATION_LOG.md).
 
-### A. Which tools (Công cụ sử dụng)
-- **Antigravity AI Coding Assistant** (mô hình **Gemini 3.8 Flash**).
-- **Docker CLI**: Khởi chạy, cấu hình và quản lý container PostgreSQL 16.
-- **Vitest & Supertest**: Chạy kiểm thử tự động trực tiếp trên database thật.
+### A. Công cụ sử dụng
+- **Trợ lý lập trình AI Antigravity** (mô hình **Gemini 3.8 Flash**).
+- **Docker CLI**: Khởi tạo, cấu hình và quản trị cơ sở dữ liệu PostgreSQL 16.
+- **Vitest và Supertest**: Tự động hóa kiểm thử đơn vị và tích hợp trên môi trường cơ sở dữ liệu thực tế.
 
-### B. What you asked them (Những gì đã yêu cầu AI)
+### B. Các yêu cầu đưa ra cho AI
 
-| # | Ứng viên yêu cầu / Câu hỏi | AI thực hiện & Phản hồi (Summary) |
+| Lượt | Yêu cầu từ ứng viên | Kết quả thực hiện của AI |
 | :---: | :--- | :--- |
-| **1** | Đọc đề bài `candidate/README.md`, làm rõ yêu cầu với techstack: React, Express, Docker Postgres, Google Gen AI SDK. | Phân tích toàn bộ đề bài, schema, seed data; đề xuất 4 phương án làm rõ kiến trúc. |
-| **2** | Phản biện bảo mật: Cách bảo vệ Read-only dùng Regex có dễ bị bypass không? Xử lý ra sao khi query kẹt, DB lỗi, LLM hết quota? | Phân tích lỗ hổng multi-statement injection; đề xuất phòng thủ 3 tầng (Prompt + Backend filter + Postgres role `shop_readonly`), cấu hình timeout 5s, giới hạn 100 dòng. |
-| **3** | Yêu cầu thiết kế modular, clean code, scalable, maintainable, global error handling; giao diện minimalism không gradient/ai slop. | Đề xuất kiến trúc 3 tầng (Controllers - Services - Infrastructure), Response Envelope chuẩn, giao diện Vanilla CSS đơn sắc tối giản. |
-| **4** | Lập `plan.md` chi tiết, tạo `.env` / `.env.example`, khởi tạo Git, chạy Docker Postgres và test kết nối. | Tạo kế hoạch 7 giai đoạn, chạy container `shop-db`, nạp `seed.sql`, tạo user `shop_readonly`, test chặn lệnh DELETE/DROP thành công. |
-| **5** | Yêu cầu tách riêng file cấu hình, tuyệt đối không hardcode giá trị, tách file System Prompt riêng. | Tạo `config/env.ts`, `config/constants.ts`, `prompts/systemPrompt.ts`, `prompts/retryPrompt.ts`. |
-| **6** | Thêm rule Unit test & Integration test, nghiêm cấm cố tình làm cho test pass (Zero Fake Passes), thiết kế code dễ test. | Ban hành `.agents/rules/testing.md`, áp dụng Dependency Injection (DI) để mock DB và LLM độc lập. |
-| **7** | Ra lệnh thực thi dự án ("execute đi"). | Xây dựng hoàn chỉnh Backend Express và Frontend React, viết và chạy thành công **26/26 Unit & Integration Tests**, kiểm thử 8 câu hỏi mẫu. |
-| **8** | Phát hiện lỗi UX: Nút trả lời nhanh bị trùng lặp nội dung với câu hỏi follow-up, yêu cầu bỏ nút đi. | Xóa nút bấm trùng lặp trên UI; tinh chỉnh prompt để câu hỏi đã rõ ràng thì không sinh follow-up thừa. |
-| **9** | Yêu cầu tách biệt `reasoning` (suy luận kỹ thuật) và `answer` (câu trả lời thân thiện cho người dùng). | Tách schema thành 2 biến riêng biệt: đưa `answer` lịch sự ra giao diện chính, thu gọn `reasoning` vào mục chi tiết kỹ thuật. |
-| **10** | Yêu cầu ẩn element khi giá trị là `null`; chặn sinh câu lệnh SQL giả (`SELECT 1 WHERE 1 = 0`) khi nhập chuỗi vô nghĩa (`abcxyz`). | Chuẩn hóa chuỗi `"null"` thành `null`, ẩn hoàn toàn khối SQL & Bảng khi không có SQL, cấm AI sinh câu lệnh dummy. |
-| **11** | Yêu cầu các câu prompt injection, raw SQL delete, hidden delete, và tình huống bi kịch xin mã HTML để test UI. | Cung cấp bộ test vectors: DELETE trực diện, multi-statement injection, CTE delete, prompt override, và 5 kịch bản thao túng cảm xúc. |
+| **1** | Phân tích đề bài `candidate/README.md`, làm rõ yêu cầu với ngăn xếp công nghệ: React, Express, Docker PostgreSQL, Google Gen AI SDK. | Rà soát toàn bộ đề bài, lược đồ bảng và dữ liệu mẫu; đề xuất các phương án cấu trúc hóa ứng dụng. |
+| **2** | Đặt câu hỏi phản biện về an toàn dữ liệu: Cơ chế chỉ đọc bằng biểu thức chính quy có bị vượt qua không? Xử lý thế nào khi truy vấn quá thời gian chờ, cơ sở dữ liệu gặp sự cố, hoặc mô hình cạn hạn ngạch API? | Phân tích rủi ro tiêm mã qua nhiều câu lệnh; đề xuất cơ chế phòng thủ ba lớp (Prompt – Backend Sanitizer – PostgreSQL Role `shop_readonly`), giới hạn thời gian chờ 5 giây và số dòng tối đa 100 dòng. |
+| **3** | Yêu cầu thiết kế mã nguồn dạng mô-đun, dễ mở rộng, xử lý lỗi tập trung; giao diện theo phong cách tối giản, không sử dụng hiệu ứng màu mè. | Thiết lập kiến trúc ba tầng (Controllers – Services – Infrastructure), chuẩn hóa cấu trúc phản hồi API, xây dựng giao diện bằng CSS thuần với tông màu đơn sắc. |
+| **4** | Lập kế hoạch triển khai chi tiết, tạo tệp cấu hình mẫu `.env.example`, khởi tạo Git, chạy Docker PostgreSQL và kiểm tra kết nối. | Soạn kế hoạch 7 giai đoạn, khởi động container `shop-db`, nạp dữ liệu `seed.sql`, cấu hình tài khoản `shop_readonly`, và xác minh cơ chế chặn các lệnh can thiệp dữ liệu. |
+| **5** | Yêu cầu tách riêng tệp cấu hình, không gán cứng giá trị trong mã nguồn, và tách riêng các tệp câu lệnh chỉ dẫn cho mô hình. | Xây dựng các tệp `config/env.ts`, `config/constants.ts`, `prompts/systemPrompt.ts`, `prompts/retryPrompt.ts`. |
+| **6** | Thiết lập quy định kiểm thử, cấm tạo các kiểm thử giả để vượt qua kiểm tra hình thức, áp dụng cơ chế tiêm phụ thuộc để thuận tiện kiểm thử. | Ban hành quy tắc kiểm thử tại `.agents/rules/testing.md`, áp dụng tiêm phụ thuộc giúp kiểm thử độc lập các tầng cơ sở dữ liệu và mô hình ngôn ngữ. |
+| **7** | Yêu cầu tiến hành viết mã nguồn toàn bộ hệ thống. | Triển khai hoàn chỉnh máy chủ Express và giao diện React, hoàn thành 26 bài kiểm thử tự động, và kiểm tra thực tế 8 câu hỏi mẫu. |
+| **8** | Phát hiện vấn đề giao diện: Nút trả lời nhanh lặp lại nguyên văn câu hỏi gợi ý, yêu cầu lược bỏ nút này. | Lược bỏ nút bấm trùng lặp trên giao diện; điều chỉnh câu lệnh chỉ dẫn để không tạo câu hỏi gợi ý khi yêu cầu người dùng đã rõ ràng. |
+| **9** | Yêu cầu tách biệt phần giải thích kỹ thuật nội bộ (`reasoning`) và câu trả lời trực tiếp cho người dùng (`answer`). | Điều chỉnh lược đồ dữ liệu thành hai trường riêng: hiển thị câu trả lời thân thiện trên màn hình chính, đưa phần suy luận kỹ thuật vào mục chi tiết mở rộng. |
+| **10** | Yêu cầu ẩn các thành phần giao diện khi giá trị là `null`; không sinh truy vấn giả dạng `SELECT 1 WHERE 1 = 0` khi người dùng nhập chuỗi ký tự vô nghĩa. | Chuẩn hóa chuỗi `"null"` về giá trị `null` nguyên thủy, ẩn hoàn toàn khối mã lệnh và bảng kết quả khi không có truy vấn, ngăn mô hình sinh truy vấn giả. |
+| **11** | Yêu cầu cung cấp các mẫu thử tiêm lệnh, xóa dữ liệu gián tiếp, và các tình huống cố tình bẻ khóa logic để kiểm thử độ bền trên giao diện. | Soạn bộ dữ liệu kiểm thử an toàn: câu lệnh can thiệp trực tiếp, tiêm lệnh đa tầng, biểu thức bảng chung (CTE), và các kịch bản dẫn dắt ngữ cảnh. |
 
-### C. What you changed or rejected from their output (Những gì đã thay đổi hoặc từ chối từ AI)
+### C. Những điểm phản biện, thay đổi hoặc từ chối đề xuất của AI
 
-| Hạng mục | Đề xuất ban đầu của AI | Phản biện & Quyết định thay đổi của Ứng viên | Lý do kỹ thuật |
+| Hạng mục | Đề xuất ban đầu của AI | Quyết định của ứng viên | Lý do kỹ thuật |
 | :--- | :--- | :--- | :--- |
-| **Cơ chế Read-Only** | Dùng Regex lọc từ khóa kết hợp `BEGIN READ ONLY;` transaction. | **Từ chối (Rejected)**. Yêu cầu chuyển sang tạo role `shop_readonly` riêng trong Postgres với `default_transaction_read_only = on`. | Regex và Transaction đơn giản dễ bị bypass bằng kỹ thuật Multi-statement (`COMMIT; DROP TABLE...`). Khóa ở tầng DB Role là giải pháp triệt để duy nhất. |
-| **Phân định Nội dung Phản hồi** | Dùng chung một biến `reasoning` hiển thị cả suy nghĩ kỹ thuật lẫn câu trả lời cho người dùng. | **Thay đổi (Changed)**. Yêu cầu tách đôi schema: `reasoning` (kỹ thuật nội bộ, thu gọn trong `<details>`) và `answer` (câu trả lời lịch sự, thân thiện cho người dùng). | Trải nghiệm người dùng (UX): Khách hàng không cần đọc suy luận kỹ thuật của AI, họ cần câu trả lời thân thiện, dễ hiểu. |
-| **Giao diện Nút bấm Follow-up** | Tạo một nút bấm "Trả lời nhanh" nhại lại nguyên văn câu hỏi làm rõ. | **Từ chối & Xóa bỏ (Rejected)**. Yêu cầu bỏ nút bấm thừa, chỉ hiển thị thông điệp làm rõ khi câu hỏi thực sự mơ hồ. | Nút bấm trùng lặp gây rối mắt và không tự nhiên trên giao diện minimalism. |
-| **Xử lý Dữ liệu Vô nghĩa (`abcxyz`)** | Tự sinh câu lệnh dummy `SELECT 1 WHERE 1 = 0` và hiển thị bảng rỗng "0 kết quả". | **Từ chối (Rejected)**. Cấm sinh SQL giả, ép `sql: null`, và ẩn hoàn toàn cả khối Code lẫn Table trên UI. | Tránh lãng phí truy vấn DB và tránh làm người dùng hiểu lầm rằng chuỗi vô nghĩa có liên quan đến dữ liệu cửa hàng. |
-| **Xử lý Giá trị `null`** | AI trả chuỗi text `"null"`, frontend coi là truthy string và render chữ `null` ra màn hình. | **Sửa lỗi (Fixed)**. Yêu cầu chuẩn hóa chuỗi `"null"` thành `null` nguyên thủy ở cả backend và frontend để ẩn 100% element. | Tránh lỗi hiển thị giao diện luộm thuộm (*"Câu hỏi làm rõ: null"*). |
-| **Kỷ luật Kiểm thử (Testing)** | Có xu hướng viết test đơn giản hoặc mock quá đà để test pass nhanh. | **Ban hành Rule nghiêm ngặt**. Yêu cầu áp dụng Dependency Injection, cấm assert sáo rỗng (`expect(true).toBe(true)`), và chạy 6 integration test trên container Postgres thật. | Đảm bảo tính chính trực của phần mềm (*Test Integrity*); test phải fail nếu logic sai. |
+| **Cơ chế bảo vệ chỉ đọc** | Sử dụng biểu thức chính quy lọc từ khóa kết hợp phiên giao dịch `BEGIN READ ONLY;`. | **Từ chối đề xuất**. Yêu cầu tạo vai trò `shop_readonly` riêng trong PostgreSQL với thiết lập `default_transaction_read_only = on`. | Biểu thức chính quy và giao dịch đơn thuần dễ bị vượt qua bằng kỹ thuật ghép nhiều câu lệnh (`COMMIT; DROP TABLE...`). Khóa quyền ở tầng người dùng cơ sở dữ liệu là giải pháp triệt để. |
+| **Phân định nội dung phản hồi** | Dùng chung một trường `reasoning` cho cả suy luận kỹ thuật lẫn câu trả lời hiển thị. | **Yêu cầu thay đổi**. Tách lược đồ thành hai trường: `reasoning` (suy luận nội bộ, đặt trong thẻ mở rộng) và `answer` (câu trả lời tự nhiên, ngắn gọn cho người dùng). | Người dùng cuối cần câu trả lời trực tiếp, dễ hiểu; không nên buộc người dùng đọc các bước suy luận trung gian của mô hình. |
+| **Nút bấm gợi ý làm rõ** | Tạo nút bấm tự động điền lại nguyên văn câu hỏi gợi ý. | **Từ chối và loại bỏ**. Giữ lại thông điệp làm rõ dạng gợi ý văn bản, bỏ nút bấm điền tự động. | Nút bấm lặp lại nguyên văn nội dung gây rối giao diện và không phản ánh đúng ngữ cảnh người dùng đang tương tác. |
+| **Xử lý chuỗi vô nghĩa (`abcxyz`)** | Tự động sinh câu lệnh giả `SELECT 1 WHERE 1 = 0` và hiển thị bảng 0 dòng. | **Từ chối đề xuất**. Ép giá trị `sql: null`, ẩn hoàn toàn khối câu lệnh và bảng kết quả trên giao diện. | Tránh gửi truy vấn không cần thiết xuống cơ sở dữ liệu và tránh làm người dùng hiểu nhầm rằng chuỗi ký tự ngẫu nhiên có liên quan đến dữ liệu cửa hàng. |
+| **Xử lý giá trị `null`** | Mô hình trả về chuỗi văn bản `"null"`, giao diện nhận diện là chuỗi hợp lệ và hiển thị nguyên chữ `"null"`. | **Sửa lỗi triệt để**. Bổ sung bước chuẩn hóa chuỗi `"null"` thành giá trị `null` nguyên thủy tại cả máy chủ và giao diện. | Ngăn ngừa lỗi hiển thị các dòng thông tin dạng rác (*"Câu hỏi làm rõ: null"*). |
+| **Kỷ luật kiểm thử** | Xu hướng viết các bài kiểm thử giản lược hoặc giả lập quá mức để vượt qua kiểm tra nhanh. | **Ban hành quy định nghiêm ngặt**. Yêu cầu dùng tiêm phụ thuộc, loại bỏ các phép so sánh hình thức, và chạy 6 bài kiểm thử tích hợp trên container cơ sở dữ liệu thực tế. | Bảo đảm tính xác thực của kiểm thử; bài kiểm thử phải phản ánh đúng lỗi nếu mã nguồn có sai sót. |
 
 ---
 
-## 5. Những Cải tiến nếu có Thêm Thời gian (Future Improvements)
+## 5. Hướng phát triển tiếp theo
 
-1. **Trực quan hóa Dữ liệu (Data Visualization)**: Tự động vẽ biểu đồ cột/đường (Bar/Line Chart) cho các câu hỏi dạng thống kê xu hướng như doanh thu theo tháng hoặc top khách hàng.
-2. **Cơ chế Caching & Vector Semantic Search**: Cache lại các cặp câu hỏi - SQL phổ biến qua Redis để phản hồi tức thì trong < 10ms mà không cần gọi lại LLM.
-3. **Phân tích Cú pháp SQL AST Nâng cao**: Tích hợp thư viện parse AST (`node-sql-parser`) để kiểm tra câu lệnh ở tầng trừu tượng sâu hơn, hỗ trợ tối ưu hóa index gợi ý.
-4. **Hỗ trợ Export Dữ liệu**: Cho phép người dùng tải kết quả bảng truy vấn dưới dạng CSV hoặc Excel với một click chuột.
-5. **Xác thực & Phân quyền (Authentication & Authorization)**: Quản lý session và quyền truy vấn theo từng tài khoản người dùng cụ thể.
-6. **Giới hạn tần suất gọi (Rate Limiting)**: Chống spam request và bảo vệ hạn mức quota gọi LLM.
-7. **Lưu trữ Lịch sử Trò chuyện (Chat History Persistence)**: Lưu vết hội thoại vào cơ sở dữ liệu để người dùng có thể xem lại các phiên làm việc trước đó.
-8. **Prompt Caching tại AI Provider**: Tối ưu chi phí token và độ trễ phản hồi cho các câu hỏi lặp lại thông qua cơ chế Context/Prompt Caching của Gemini.
+1. **Trực quan hóa dữ liệu**: Tự động nhận diện kết quả phù hợp để vẽ biểu đồ cột hoặc biểu đồ đường cho các truy vấn thống kê xu hướng doanh thu và số lượng.
+2. **Bộ nhớ đệm và tìm kiếm tương đồng**: Lưu trữ tạm thời các cặp câu hỏi và truy vấn phổ biến qua Redis để giảm độ trễ phản hồi xuống dưới 10 mili-giây.
+3. **Phân tích cây cú pháp trừu tượng (SQL AST)**: Tích hợp bộ phân tích cú pháp để kiểm tra câu lệnh ở tầng cấu trúc và đưa ra khuyến nghị chỉ mục phù hợp.
+4. **Xuất dữ liệu kết quả**: Bổ sung tính năng tải dữ liệu bảng kết quả dưới định dạng CSV hoặc bảng tính.
+5. **Xác thực và phân quyền**: Quản lý phiên làm việc theo từng tài khoản người dùng cụ thể.
+6. **Giới hạn tần suất gọi API**: Kiểm soát số lượng yêu cầu trong một khoảng thời gian để bảo vệ hạn mức dịch vụ mô hình ngôn ngữ.
+7. **Lưu trữ lịch sử hội thoại**: Ghi nhận lịch sử tương tác vào cơ sở dữ liệu giúp người dùng tra cứu các phiên làm việc trước đó.
+8. **Bộ nhớ đệm ngữ cảnh (Prompt Caching)**: Tận dụng cơ chế lưu trữ chỉ dẫn hệ thống tại nhà cung cấp mô hình để tiết kiệm chi phí và rút ngắn thời gian xử lý.
