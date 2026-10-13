@@ -101,14 +101,39 @@ npm test
 
 ## 4. Cách sử dụng Công cụ AI Coding (AI Tools Usage)
 
-- **Công cụ sử dụng**: Antigravity AI Coding Assistant (mô hình Gemini 3.8 Flash).
-- **Chi tiết Nhật ký Trao đổi**: Toàn bộ nhật ký đối thoại, những yêu cầu, phản biện kỹ thuật và điều chỉnh của ứng viên được ghi lại chi tiết tại file [AI_COLLABORATION_LOG.md](AI_COLLABORATION_LOG.md).
-- **Quy trình tương tác & Giám sát**:
-  - *Giai đoạn Phân tích*: Đọc kỹ tài liệu đề bài, đặt các câu hỏi làm rõ các điểm mơ hồ (cơ chế Read-only, cách xử lý câu hỏi 5–8, vòng lặp retry 3 lần).
-  - *Kiểm soát An toàn & Phản biện*: 
-    - Ban đầu cân nhắc dùng Regex blacklist đơn thuần; nhận thấy dễ bị bypass qua multi-statement (`COMMIT; DROP TABLE`), quyết định chuyển sang **Phòng thủ 3 tầng**: AI prompt + Sanitizer + PostgreSQL `shop_readonly` role với `default_transaction_read_only = on`.
-    - Phát hiện và sửa kịp thời lỗi tham chiếu biến trong module JSON parser (`parseAndValidateResponse`) nhờ quy trình test tự động.
-  - *Bộ quy tắc Test Integrity*: Áp dụng quy tắc "Zero Cheating / No Fake Passes", bắt buộc viết unit test và integration test thực thụ với PostgreSQL container, từ chối mọi hình thức test pass giả tạo.
+> Chi tiết từng lượt hỏi - đáp được lưu lại tại [AI_COLLABORATION_LOG.md](AI_COLLABORATION_LOG.md).
+
+### A. Which tools (Công cụ sử dụng)
+- **Antigravity AI Coding Assistant** (mô hình **Gemini 3.8 Flash**).
+- **Docker CLI**: Khởi chạy, cấu hình và quản lý container PostgreSQL 16.
+- **Vitest & Supertest**: Chạy kiểm thử tự động trực tiếp trên database thật.
+
+### B. What you asked them (Những gì đã yêu cầu AI)
+
+| # | Ứng viên yêu cầu / Câu hỏi | AI thực hiện & Phản hồi (Summary) |
+| :---: | :--- | :--- |
+| **1** | Đọc đề bài `candidate/README.md`, làm rõ yêu cầu với techstack: React, Express, Docker Postgres, Google Gen AI SDK. | Phân tích toàn bộ đề bài, schema, seed data; đề xuất 4 phương án làm rõ kiến trúc. |
+| **2** | Phản biện bảo mật: Cách bảo vệ Read-only dùng Regex có dễ bị bypass không? Xử lý ra sao khi query kẹt, DB lỗi, LLM hết quota? | Phân tích lỗ hổng multi-statement injection; đề xuất phòng thủ 3 tầng (Prompt + Backend filter + Postgres role `shop_readonly`), cấu hình timeout 5s, giới hạn 100 dòng. |
+| **3** | Yêu cầu thiết kế modular, clean code, scalable, maintainable, global error handling; giao diện minimalism không gradient/ai slop. | Đề xuất kiến trúc 3 tầng (Controllers - Services - Infrastructure), Response Envelope chuẩn, giao diện Vanilla CSS đơn sắc tối giản. |
+| **4** | Lập `plan.md` chi tiết, tạo `.env` / `.env.example`, khởi tạo Git, chạy Docker Postgres và test kết nối. | Tạo kế hoạch 7 giai đoạn, chạy container `shop-db`, nạp `seed.sql`, tạo user `shop_readonly`, test chặn lệnh DELETE/DROP thành công. |
+| **5** | Yêu cầu tách riêng file cấu hình, tuyệt đối không hardcode giá trị, tách file System Prompt riêng. | Tạo `config/env.ts`, `config/constants.ts`, `prompts/systemPrompt.ts`, `prompts/retryPrompt.ts`. |
+| **6** | Thêm rule Unit test & Integration test, nghiêm cấm cố tình làm cho test pass (Zero Fake Passes), thiết kế code dễ test. | Ban hành `.agents/rules/testing.md`, áp dụng Dependency Injection (DI) để mock DB và LLM độc lập. |
+| **7** | Ra lệnh thực thi dự án ("execute đi"). | Xây dựng hoàn chỉnh Backend Express và Frontend React, viết và chạy thành công **26/26 Unit & Integration Tests**, kiểm thử 8 câu hỏi mẫu. |
+| **8** | Phát hiện lỗi UX: Nút trả lời nhanh bị trùng lặp nội dung với câu hỏi follow-up, yêu cầu bỏ nút đi. | Xóa nút bấm trùng lặp trên UI; tinh chỉnh prompt để câu hỏi đã rõ ràng thì không sinh follow-up thừa. |
+| **9** | Yêu cầu tách biệt `reasoning` (suy luận kỹ thuật) và `answer` (câu trả lời thân thiện cho người dùng). | Tách schema thành 2 biến riêng biệt: đưa `answer` lịch sự ra giao diện chính, thu gọn `reasoning` vào mục chi tiết kỹ thuật. |
+| **10** | Yêu cầu ẩn element khi giá trị là `null`; chặn sinh câu lệnh SQL giả (`SELECT 1 WHERE 1 = 0`) khi nhập chuỗi vô nghĩa (`abcxyz`). | Chuẩn hóa chuỗi `"null"` thành `null`, ẩn hoàn toàn khối SQL & Bảng khi không có SQL, cấm AI sinh câu lệnh dummy. |
+| **11** | Yêu cầu các câu prompt injection, raw SQL delete, hidden delete, và tình huống bi kịch xin mã HTML để test UI. | Cung cấp bộ test vectors: DELETE trực diện, multi-statement injection, CTE delete, prompt override, và 5 kịch bản thao túng cảm xúc. |
+
+### C. What you changed or rejected from their output (Những gì đã thay đổi hoặc từ chối từ AI)
+
+| Hạng mục | Đề xuất ban đầu của AI | Phản biện & Quyết định thay đổi của Ứng viên | Lý do kỹ thuật |
+| :--- | :--- | :--- | :--- |
+| **Cơ chế Read-Only** | Dùng Regex lọc từ khóa kết hợp `BEGIN READ ONLY;` transaction. | **Từ chối (Rejected)**. Yêu cầu chuyển sang tạo role `shop_readonly` riêng trong Postgres với `default_transaction_read_only = on`. | Regex và Transaction đơn giản dễ bị bypass bằng kỹ thuật Multi-statement (`COMMIT; DROP TABLE...`). Khóa ở tầng DB Role là giải pháp triệt để duy nhất. |
+| **Phân định Nội dung Phản hồi** | Dùng chung một biến `reasoning` hiển thị cả suy nghĩ kỹ thuật lẫn câu trả lời cho người dùng. | **Thay đổi (Changed)**. Yêu cầu tách đôi schema: `reasoning` (kỹ thuật nội bộ, thu gọn trong `<details>`) và `answer` (câu trả lời lịch sự, thân thiện cho người dùng). | Trải nghiệm người dùng (UX): Khách hàng không cần đọc suy luận kỹ thuật của AI, họ cần câu trả lời thân thiện, dễ hiểu. |
+| **Giao diện Nút bấm Follow-up** | Tạo một nút bấm "Trả lời nhanh" nhại lại nguyên văn câu hỏi làm rõ. | **Từ chối & Xóa bỏ (Rejected)**. Yêu cầu bỏ nút bấm thừa, chỉ hiển thị thông điệp làm rõ khi câu hỏi thực sự mơ hồ. | Nút bấm trùng lặp gây rối mắt và không tự nhiên trên giao diện minimalism. |
+| **Xử lý Dữ liệu Vô nghĩa (`abcxyz`)** | Tự sinh câu lệnh dummy `SELECT 1 WHERE 1 = 0` và hiển thị bảng rỗng "0 kết quả". | **Từ chối (Rejected)**. Cấm sinh SQL giả, ép `sql: null`, và ẩn hoàn toàn cả khối Code lẫn Table trên UI. | Tránh lãng phí truy vấn DB và tránh làm người dùng hiểu lầm rằng chuỗi vô nghĩa có liên quan đến dữ liệu cửa hàng. |
+| **Xử lý Giá trị `null`** | AI trả chuỗi text `"null"`, frontend coi là truthy string và render chữ `null` ra màn hình. | **Sửa lỗi (Fixed)**. Yêu cầu chuẩn hóa chuỗi `"null"` thành `null` nguyên thủy ở cả backend và frontend để ẩn 100% element. | Tránh lỗi hiển thị giao diện luộm thuộm (*"Câu hỏi làm rõ: null"*). |
+| **Kỷ luật Kiểm thử (Testing)** | Có xu hướng viết test đơn giản hoặc mock quá đà để test pass nhanh. | **Ban hành Rule nghiêm ngặt**. Yêu cầu áp dụng Dependency Injection, cấm assert sáo rỗng (`expect(true).toBe(true)`), và chạy 6 integration test trên container Postgres thật. | Đảm bảo tính chính trực của phần mềm (*Test Integrity*); test phải fail nếu logic sai. |
 
 ---
 
@@ -118,8 +143,7 @@ npm test
 2. **Cơ chế Caching & Vector Semantic Search**: Cache lại các cặp câu hỏi - SQL phổ biến qua Redis để phản hồi tức thì trong < 10ms mà không cần gọi lại LLM.
 3. **Phân tích Cú pháp SQL AST Nâng cao**: Tích hợp thư viện parse AST (`node-sql-parser`) để kiểm tra câu lệnh ở tầng trừu tượng sâu hơn, hỗ trợ tối ưu hóa index gợi ý.
 4. **Hỗ trợ Export Dữ liệu**: Cho phép người dùng tải kết quả bảng truy vấn dưới dạng CSV hoặc Excel với một click chuột.
-5. Authencation
-6. Ratelimit
-7. Lưu lịch sử trò chuyện
-8. Prompt caching tại AI Provider
-9. 
+5. **Xác thực & Phân quyền (Authentication & Authorization)**: Quản lý session và quyền truy vấn theo từng tài khoản người dùng cụ thể.
+6. **Giới hạn tần suất gọi (Rate Limiting)**: Chống spam request và bảo vệ hạn mức quota gọi LLM.
+7. **Lưu trữ Lịch sử Trò chuyện (Chat History Persistence)**: Lưu vết hội thoại vào cơ sở dữ liệu để người dùng có thể xem lại các phiên làm việc trước đó.
+8. **Prompt Caching tại AI Provider**: Tối ưu chi phí token và độ trễ phản hồi cho các câu hỏi lặp lại thông qua cơ chế Context/Prompt Caching của Gemini.
