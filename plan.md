@@ -23,48 +23,48 @@ Xây dựng ứng dụng web tương tác (React + Express + PostgreSQL + Google
 - [x] Kiểm thử kết nối và kiểm thử quyền từ chối lệnh DELETE/UPDATE.
 
 ### Giai đoạn 2: Khởi tạo Cấu trúc Monorepo & Dependencies
-- [ ] Tạo root `package.json` với script điều phối (`concurrently`).
-- [ ] Thiết lập thư mục `server/`:
+- [x] Tạo root `package.json` với script điều phối (`concurrently`).
+- [x] Thiết lập thư mục `server/`:
   - Cài đặt `express`, `cors`, `dotenv`, `pg`, `@google/genai`, `typescript`, `@types/node`, `@types/express`, `@types/cors`, `@types/pg`, `tsx`.
   - Cấu hình `tsconfig.json`.
-- [ ] Thiết lập thư mục `client/`:
+- [x] Thiết lập thư mục `client/`:
   - Khởi tạo React + Vite + TypeScript.
   - Cấu hình Vanilla CSS Design System (Minimalism theme).
 
 ### Giai đoạn 3: Xây dựng Backend (3-Layer Modular Architecture)
-- [ ] **Config & Prompt Separation (Tuyệt đối không hardcode)**:
+- [x] **Config & Prompt Separation (Tuyệt đối không hardcode)**:
   - `config/env.ts`: Validate và export toàn bộ biến môi trường (PORT, DB credentials, GEMINI_API_KEY, GEMINI_MODEL, MAX_QUERY_ROWS, QUERY_TIMEOUT_MS, MAX_RETRY_ATTEMPTS, SESSION_TTL_MS).
   - `config/constants.ts`: Các hằng số ứng dụng (Mã lỗi, HTTP status, Table names, Default limits).
   - `prompts/systemPrompt.ts`: System prompt được tách file riêng, chứa đầy đủ schema metadata, business rules, JSON Schema output, và hướng dẫn xử lý câu hỏi bất thường/mơ hồ.
   - `prompts/retryPrompt.ts`: Template prompt chuyên dụng cho vòng lặp sửa lỗi SQL khi nhận thông báo lỗi từ Postgres.
-- [ ] **Infrastructure Layer**:
+- [x] **Infrastructure Layer**:
   - `infrastructure/db/postgres.ts`: Quản lý `pg.Pool`, cấu hình timeout, hàm kiểm tra health-check.
   - `infrastructure/llm/geminiClient.ts`: Kết nối `@google/genai`, cấu hình Structured JSON schema, xử lý lỗi API (quota, auth, safety).
   - `infrastructure/session/sessionStore.ts`: Interface trừu tượng `SessionStore` + implementation `InMemorySessionStore` (dễ dàng mở rộng Redis).
   - `infrastructure/errors/appError.ts`: Hệ thống phân cấp lỗi và middleware xử lý lỗi toàn cục (Global Error Middleware).
-- [ ] **Service Layer**:
+- [x] **Service Layer**:
   - `services/schemaService.ts`: Cung cấp schema metadata và business rules động cho prompt.
   - `services/queryExecutor.ts`: Thực thi query trên DB với giới hạn số dòng, timeout, và vòng lặp Retry 3 lần khi SQL lỗi.
   - `services/chatService.ts`: Điều phối luồng xử lý: kiểm tra câu hỏi -> sinh SQL qua Gemini -> thực thi / retry -> phản hồi follow-up.
-- [ ] **Controller & Route Layer**:
+- [x] **Controller & Route Layer**:
   - `controllers/chatController.ts`: Endpoint `POST /api/chat`.
   - `controllers/healthController.ts`: Endpoint `GET /api/health` kiểm tra kết nối DB và trạng thái API Key.
 
 ### Giai đoạn 4: Xây dựng Frontend React (Minimalist UI)
-- [ ] Thiết lập Design System Vanilla CSS (Variables, Dark mode dịu mắt, border 1px tinh tế, monospace font).
-- [ ] Xây dựng Components:
+- [x] Thiết lập Design System Vanilla CSS (Variables, Dark mode dịu mắt, border 1px tinh tế, monospace font).
+- [x] Xây dựng Components:
   - `Header`: Tiêu đề & Status Badge kết nối Database (🟢 / 🔴).
   - `ChatWindow`: Danh sách tin nhắn hội thoại mượt mà.
   - `SqlViewer`: Hộp hiển thị SQL code tối giản có nút Copy nhanh.
   - `DataTable`: Bảng dữ liệu sạch sẽ, format số tiền VND rõ ràng, cảnh báo giới hạn 100 dòng.
   - `StatusNotification`: Thông báo trạng thái retry (lần 1/3, 2/3...) và cảnh báo.
   - `PromptInput`: Ô nhập câu hỏi kèm các gợi ý câu hỏi mẫu (Test questions 1-8).
-- [ ] Tích hợp Custom Hooks:
+- [x] Tích hợp Custom Hooks:
   - `useChatSession`: Quản lý state hội thoại, loading, gửi tin nhắn, nhận follow-up.
   - `useHealth`: Kiểm tra trạng thái server & DB.
 
 ### Giai đoạn 5: Kiểm thử Toàn diện & Xử lý Edge Cases
-- [ ] Kiểm thử 8 câu hỏi mẫu trong `README.md`:
+- [x] Kiểm thử 8 câu hỏi mẫu trong `README.md`:
   1. *How many customers are there?* (Kiểm tra count = 100)
   2. *Top 3 customers by total spending* (Kiểm tra điều kiện `status = 'paid'`)
   3. *Customers who never placed an order* (Kiểm tra `NOT EXISTS` / `LEFT JOIN IS NULL`)
@@ -73,26 +73,26 @@ Xây dựng ứng dụng web tương tác (React + Express + PostgreSQL + Google
   6. *Show employee salaries* (Không có bảng -> LLM giải thích rõ ràng)
   7. *Delete all cancelled orders* (Thao tác bị chặn ngay lập tức)
   8. *What is the best product?* (Câu hỏi mơ hồ -> đưa ra câu hỏi follow-up làm rõ)
-- [ ] Kiểm thử các trường hợp lỗi:
+- [x] Kiểm thử các trường hợp lỗi:
   - Tắt Docker DB xem giao diện phản ứng thế nào.
   - Nhập câu lệnh SQL timeout (> 5s).
   - Nhập câu hỏi ngẫu nhiên không liên quan.
 
 ### Giai đoạn 6: Kiểm thử Tự động (Unit & Integration Tests)
-- [ ] Cấu hình test runner `vitest` và `supertest` cho cả server và client.
-- [ ] **Unit Tests**:
+- [x] Cấu hình test runner `vitest` và `supertest` cho cả server và client.
+- [x] **Unit Tests**:
   - `config/env.test.ts`: Test validation biến môi trường, default fallback, bắt lỗi khi thiếu config.
   - `prompts/systemPrompt.test.ts`: Test sinh prompt chứa đúng schema và business rules.
   - `infrastructure/session/sessionStore.test.ts`: Test CRUD session và cơ chế TTL hết hạn.
   - `services/queryExecutor.test.ts`: Test cơ chế retry 3 lần, cắt trần 100 dòng, timeout handling.
   - `services/chatService.test.ts`: Test logic phân loại câu hỏi (bình thường, mơ hồ, phá hoại/mutation).
   - `infrastructure/errors/appError.test.ts`: Test mapping mã lỗi và chuẩn hóa response envelope.
-- [ ] **Integration Tests**:
+- [x] **Integration Tests**:
   - `tests/integration/db.test.ts`: Kết nối Postgres thật bằng `shop_readonly`, kiểm tra quyền SELECT và xác nhận DELETE/UPDATE/DROP 100% bị từ chối từ DB.
   - `tests/integration/api.test.ts`: Kiểm tra các endpoint `GET /api/health` và `POST /api/chat`.
 
 ### Giai đoạn 7: Hoàn thiện Tài liệu (Submit README)
-- [ ] Tạo file `README.md` chính ở root:
+- [x] Tạo file `README.md` chính ở root:
   - Hướng dẫn chạy (Docker, cài đặt, biến môi trường).
   - Model và SDK đã sử dụng.
   - Hướng dẫn chạy test suite (`npm test`).

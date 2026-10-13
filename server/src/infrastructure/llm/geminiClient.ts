@@ -137,9 +137,19 @@ export class GeminiClient implements ILlmClient {
       }
 
       const parsed = JSON.parse(cleaned) as Partial<LlmSqlOutput>;
+      const rawSql = parsed.sql ? parsed.sql.trim() : null;
+      const normalizedSql =
+        !rawSql ||
+        rawSql.toLowerCase() === 'null' ||
+        rawSql.toLowerCase() === 'none' ||
+        rawSql === '""' ||
+        rawSql.startsWith('--')
+          ? null
+          : rawSql;
+
       return {
         reasoning: parsed.reasoning || '',
-        sql: parsed.sql ? parsed.sql.trim() : null,
+        sql: normalizedSql,
         isAmbiguous: Boolean(parsed.isAmbiguous),
         isRefusal: Boolean(parsed.isRefusal),
         followUpQuestion: parsed.followUpQuestion ? parsed.followUpQuestion.trim() : null,
