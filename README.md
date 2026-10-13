@@ -102,6 +102,7 @@ npm test
 ## 4. Cách sử dụng Công cụ AI Coding (AI Tools Usage)
 
 - **Công cụ sử dụng**: Antigravity AI Coding Assistant (mô hình Gemini 3.8 Flash).
+- **Chi tiết Nhật ký Trao đổi**: Toàn bộ nhật ký đối thoại, những yêu cầu, phản biện kỹ thuật và điều chỉnh của ứng viên được ghi lại chi tiết tại file [AI_COLLABORATION_LOG.md](AI_COLLABORATION_LOG.md).
 - **Quy trình tương tác & Giám sát**:
   - *Giai đoạn Phân tích*: Đọc kỹ tài liệu đề bài, đặt các câu hỏi làm rõ các điểm mơ hồ (cơ chế Read-only, cách xử lý câu hỏi 5–8, vòng lặp retry 3 lần).
   - *Kiểm soát An toàn & Phản biện*: 
@@ -120,4 +121,5 @@ npm test
 5. Authencation
 6. Ratelimit
 7. Lưu lịch sử trò chuyện
-8. 
+8. Prompt caching tại AI Provider
+9. 
