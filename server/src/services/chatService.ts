@@ -14,6 +14,7 @@ export interface ChatResponseData {
   sessionId: string;
   userMessage: string;
   reasoning: string;
+  answer: string;
   sql: string | null;
   isAmbiguous: boolean;
   isRefusal: boolean;
@@ -81,7 +82,8 @@ export class ChatService {
     // Save assistant response in session
     this.sessionStore.addMessage(session.id, {
       role: 'assistant',
-      content: llmOutput.reasoning,
+      content: llmOutput.answer,
+      answer: llmOutput.answer,
       sql: finalSql,
       reasoning: llmOutput.reasoning,
       isAmbiguous: llmOutput.isAmbiguous,
@@ -93,6 +95,7 @@ export class ChatService {
       sessionId: session.id,
       userMessage: rawMessage,
       reasoning: llmOutput.reasoning,
+      answer: llmOutput.answer,
       sql: finalSql,
       isAmbiguous: llmOutput.isAmbiguous,
       isRefusal: llmOutput.isRefusal,

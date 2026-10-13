@@ -232,10 +232,45 @@ body {
   gap: 1rem;
 }
 
+.answer-box {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
 .reasoning-box {
   font-size: 0.9rem;
   color: var(--text-secondary);
   line-height: 1.55;
+}
+
+.reasoning-accordion {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.015);
+  font-size: 0.775rem;
+  overflow: hidden;
+}
+
+.reasoning-accordion summary {
+  padding: 0.35rem 0.65rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  user-select: none;
+}
+
+.reasoning-accordion summary:hover {
+  color: var(--text-secondary);
+}
+
+.reasoning-content {
+  padding: 0.5rem 0.65rem;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  background-color: var(--bg-tertiary);
 }
 
 /* SQL Block */

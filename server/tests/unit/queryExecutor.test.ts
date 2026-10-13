@@ -76,6 +76,7 @@ describe('QueryExecutorService', () => {
       const mockLlm = createMockLlm();
       const fixedLlmOutput: LlmSqlOutput = {
         reasoning: 'Fixed syntax error',
+        answer: 'Đã sửa câu truy vấn SQL.',
         sql: 'SELECT count(*) FROM customers',
         isAmbiguous: false,
         isRefusal: false,
@@ -105,6 +106,7 @@ describe('QueryExecutorService', () => {
       const mockLlm = createMockLlm();
       const fixedLlmOutput: LlmSqlOutput = {
         reasoning: 'Still trying to fix',
+        answer: 'Đang thử sửa lỗi.',
         sql: 'SELECT * FROM test',
         isAmbiguous: false,
         isRefusal: false,

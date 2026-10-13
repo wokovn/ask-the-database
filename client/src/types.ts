@@ -19,6 +19,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   userMessage?: string;
   content: string;
+  answer?: string;
   sql?: string | null;
   reasoning?: string;
   isAmbiguous?: boolean;

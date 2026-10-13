@@ -12,6 +12,7 @@ describe('Prompt Construction Modules', () => {
     expect(prompt).toContain('VND');
     expect(prompt).toContain('READ-ONLY');
     expect(prompt).toContain('"reasoning"');
+    expect(prompt).toContain('"answer"');
     expect(prompt).toContain('"sql"');
   });
 

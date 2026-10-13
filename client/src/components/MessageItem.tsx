@@ -30,13 +30,21 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       {/* Security Refusal */}
       {message.isRefusal && (
         <div className="notice-pill refusal">
-          <span>🛡️ Từ chối: {message.reasoning || 'Thao tác không được phép trong chế độ Read-only.'}</span>
+          <span>🛡️ {message.answer || message.reasoning || 'Thao tác không được phép trong chế độ Read-only.'}</span>
         </div>
       )}
 
-      {/* Normal Reasoning */}
-      {!message.error && !message.isRefusal && message.reasoning && (
-        <div className="reasoning-box">{message.reasoning}</div>
+      {/* User-friendly Friendly Answer */}
+      {!message.error && !message.isRefusal && (message.answer || message.content) && (
+        <div className="answer-box">{message.answer || message.content}</div>
+      )}
+
+      {/* Collapsible internal technical reasoning for dev / evaluation */}
+      {message.reasoning && (
+        <details className="reasoning-accordion">
+          <summary>Chi tiết suy luận kỹ thuật</summary>
+          <div className="reasoning-content">{message.reasoning}</div>
+        </details>
       )}
 
       {/* Retry recovery status pill */}

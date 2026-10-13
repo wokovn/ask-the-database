@@ -8,6 +8,7 @@ import { ERROR_CODES } from '../../config/constants.js';
 
 export interface LlmSqlOutput {
   reasoning: string;
+  answer: string;
   sql: string | null;
   isAmbiguous: boolean;
   isRefusal: boolean;
@@ -54,7 +55,11 @@ export class GeminiClient implements ILlmClient {
             properties: {
               reasoning: {
                 type: Type.STRING,
-                description: 'Lý do hoặc giải thích ngắn gọn bằng tiếng Việt',
+                description: 'Suy luận kỹ thuật nội bộ của AI (dùng cho log/debug)',
+              },
+              answer: {
+                type: Type.STRING,
+                description: 'Câu trả lời trực tiếp ngắn gọn, lịch sự, thân thiện bằng tiếng Việt cho người dùng',
               },
               sql: {
                 type: Type.STRING,
@@ -73,7 +78,7 @@ export class GeminiClient implements ILlmClient {
                 description: 'Câu hỏi làm rõ tiếp theo cho người dùng nếu mơ hồ',
               },
             },
-            required: ['reasoning', 'isAmbiguous', 'isRefusal'],
+            required: ['reasoning', 'answer', 'isAmbiguous', 'isRefusal'],
           },
         },
       });
@@ -110,6 +115,7 @@ export class GeminiClient implements ILlmClient {
       if (err.message?.includes('SAFETY') || err.message?.includes('blocked')) {
         return {
           reasoning: 'Yêu cầu bị từ chối bởi bộ lọc an toàn của Google Gemini.',
+          answer: 'Dạ, câu hỏi bị từ chối bởi bộ lọc an toàn. Bạn vui lòng diễn đạt lại câu hỏi giúp mình nhé.',
           sql: null,
           isAmbiguous: false,
           isRefusal: true,
@@ -149,6 +155,7 @@ export class GeminiClient implements ILlmClient {
 
       return {
         reasoning: parsed.reasoning || '',
+        answer: parsed.answer || parsed.reasoning || '',
         sql: normalizedSql,
         isAmbiguous: Boolean(parsed.isAmbiguous),
         isRefusal: Boolean(parsed.isRefusal),

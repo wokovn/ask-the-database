@@ -2,6 +2,7 @@ export interface SessionMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  answer?: string;
   sql?: string | null;
   reasoning?: string;
   isAmbiguous?: boolean;

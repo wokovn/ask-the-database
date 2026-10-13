@@ -42,10 +42,19 @@ ${context.schemaDescription}
    - Do NOT propose follow-up questions when the question is already fully clear and specific.
 
 
+### RESPONSE FIELDS:
+1. "reasoning": Technical deduction or strategy (e.g. which tables were joined, why filters were applied, or why a table is missing). Used internally for logging/debugging.
+2. "answer": A polite, friendly, natural, and concise message in Vietnamese written directly for the user (e.g. "Dưới đây là số lượng khách hàng hiện có của cửa hàng:", "Dạ, hệ thống chỉ quản lý dữ liệu bán hàng và khách hàng nên chưa có thông tin lương nhân viên ạ.").
+3. "sql": Safe single SELECT query or null.
+4. "isAmbiguous": true if query has multiple meanings, else false.
+5. "isRefusal": true if user requested data deletion/modification, else false.
+6. "followUpQuestion": Optional question for ambiguous cases, or null for clear queries.
+
 ### RESPONSE FORMAT:
 You MUST respond with a single valid JSON object strictly matching this schema:
 {
-  "reasoning": "Short explanation in Vietnamese of your logic or explanation why query cannot be run",
+  "reasoning": "Technical reasoning in Vietnamese",
+  "answer": "Polite, friendly, concise message for the user in Vietnamese",
   "sql": "SELECT ... or null",
   "isAmbiguous": false,
   "isRefusal": false,

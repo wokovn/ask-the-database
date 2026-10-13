@@ -33,7 +33,7 @@ describe('ChatService Orchestrator', () => {
     const store = new InMemorySessionStore();
     const service = new ChatService(
       store,
-      createMockLlm({ reasoning: '', sql: null, isAmbiguous: false, isRefusal: false, followUpQuestion: null }),
+      createMockLlm({ reasoning: '', answer: '', sql: null, isAmbiguous: false, isRefusal: false, followUpQuestion: null }),
       new SchemaService(),
       createMockExecutor()
     );
@@ -45,7 +45,8 @@ describe('ChatService Orchestrator', () => {
   it('should handle refusal for destructive requests without running SQL', async () => {
     const store = new InMemorySessionStore();
     const mockLlm = createMockLlm({
-      reasoning: 'Hệ thống ở chế độ chỉ đọc. Không thể xóa dữ liệu.',
+      reasoning: 'Lý do kỹ thuật: chặn DELETE',
+      answer: 'Hệ thống ở chế độ chỉ đọc bạn nhé.',
       sql: null,
       isAmbiguous: false,
       isRefusal: true,
@@ -57,6 +58,7 @@ describe('ChatService Orchestrator', () => {
     const result = await service.processMessage({ message: 'Delete all cancelled orders' });
 
     expect(result.isRefusal).toBe(true);
+    expect(result.answer).toBe('Hệ thống ở chế độ chỉ đọc bạn nhé.');
     expect(result.sql).toBeNull();
     expect(result.queryResult).toBeNull();
     expect(mockExecutor.executeWithRetry).not.toHaveBeenCalled();
@@ -71,6 +73,7 @@ describe('ChatService Orchestrator', () => {
     const store = new InMemorySessionStore();
     const mockLlm = createMockLlm({
       reasoning: 'Mặc định tính sản phẩm có doanh thu cao nhất',
+      answer: 'Dưới đây là sản phẩm có doanh thu cao nhất:',
       sql: 'SELECT product_id FROM order_items GROUP BY product_id',
       isAmbiguous: true,
       isRefusal: false,
@@ -82,6 +85,7 @@ describe('ChatService Orchestrator', () => {
     const result = await service.processMessage({ message: 'What is the best product?' });
 
     expect(result.isAmbiguous).toBe(true);
+    expect(result.answer).toBe('Dưới đây là sản phẩm có doanh thu cao nhất:');
     expect(result.followUpQuestion).toBe('Bạn muốn xem theo doanh thu hay số lượng?');
     expect(result.queryResult).toBeDefined();
     expect(mockExecutor.executeWithRetry).toHaveBeenCalled();

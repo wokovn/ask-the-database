@@ -11,6 +11,7 @@ describe('HTTP API Integration Tests', () => {
   const mockLlm: ILlmClient = {
     generateSql: vi.fn().mockResolvedValue({
       reasoning: 'Đếm số lượng khách hàng',
+      answer: 'Dưới đây là số lượng khách hàng hiện có:',
       sql: 'SELECT count(*) FROM customers',
       isAmbiguous: false,
       isRefusal: false,

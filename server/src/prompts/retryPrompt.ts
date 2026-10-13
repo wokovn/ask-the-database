@@ -24,7 +24,8 @@ Remember:
 - Maintain all business rules (paid orders for revenue/spending, VND currency).
 - Respond ONLY with the JSON format:
 {
-  "reasoning": "Brief explanation in Vietnamese of how the error was corrected",
+  "reasoning": "Brief technical explanation in Vietnamese of how the error was corrected",
+  "answer": "Polite, friendly message for the user in Vietnamese",
   "sql": "Corrected SELECT query",
   "isAmbiguous": false,
   "isRefusal": false,
