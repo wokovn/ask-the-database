@@ -117,3 +117,7 @@ npm test
 2. **Cơ chế Caching & Vector Semantic Search**: Cache lại các cặp câu hỏi - SQL phổ biến qua Redis để phản hồi tức thì trong < 10ms mà không cần gọi lại LLM.
 3. **Phân tích Cú pháp SQL AST Nâng cao**: Tích hợp thư viện parse AST (`node-sql-parser`) để kiểm tra câu lệnh ở tầng trừu tượng sâu hơn, hỗ trợ tối ưu hóa index gợi ý.
 4. **Hỗ trợ Export Dữ liệu**: Cho phép người dùng tải kết quả bảng truy vấn dưới dạng CSV hoặc Excel với một click chuột.
+5. Authencation
+6. Ratelimit
+7. Lưu lịch sử trò chuyện
+8. 
