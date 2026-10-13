@@ -5,10 +5,9 @@ import { DataTable } from './DataTable.js';
 
 interface MessageItemProps {
   message: ChatMessage;
-  onFollowUpClick?: (question: string) => void;
 }
 
-export const MessageItem: React.FC<MessageItemProps> = ({ message, onFollowUpClick }) => {
+export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   if (message.role === 'user') {
     return (
       <div className="user-query-row">
@@ -60,16 +59,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onFollowUpCli
         <div className="follow-up-box">
           <span className="follow-up-label">Câu hỏi làm rõ tiếp theo</span>
           <span className="follow-up-text">{message.followUpQuestion}</span>
-          {onFollowUpClick && (
-            <div style={{ marginTop: '0.25rem' }}>
-              <button
-                className="btn-secondary"
-                onClick={() => onFollowUpClick(message.followUpQuestion!)}
-              >
-                Trả lời: &quot;{message.followUpQuestion}&quot;
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>

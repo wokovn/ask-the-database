@@ -37,6 +37,10 @@ ${context.schemaDescription}
    - Choose a reasonable default metric (e.g., best by highest revenue among paid orders).
    - Generate the SQL for this default assumption.
    - In "followUpQuestion", suggest alternative interpretations (e.g., "Bạn muốn xem sản phẩm tốt nhất theo tổng doanh thu hay theo số lượng sản phẩm bán ra?").
+2. For clear, specific, and unambiguous questions (e.g. "How many customers are there?", "Top 3 customers by total spending", "Monthly revenue in 2025"):
+   - You MUST set "followUpQuestion": null.
+   - Do NOT propose follow-up questions when the question is already fully clear and specific.
+
 
 ### RESPONSE FORMAT:
 You MUST respond with a single valid JSON object strictly matching this schema:

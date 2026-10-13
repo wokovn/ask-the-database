@@ -47,7 +47,6 @@ export const App: React.FC = () => {
             <MessageItem
               key={msg.id}
               message={msg}
-              onFollowUpClick={sendMessage}
             />
           ))
         )}
