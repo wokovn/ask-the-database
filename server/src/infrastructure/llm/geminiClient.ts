@@ -144,7 +144,7 @@ export class GeminiClient implements ILlmClient {
 
       const parsed = JSON.parse(cleaned) as Partial<LlmSqlOutput>;
       const rawSql = parsed.sql ? parsed.sql.trim() : null;
-      const normalizedSql =
+      let normalizedSql: string | null =
         !rawSql ||
         rawSql.toLowerCase() === 'null' ||
         rawSql.toLowerCase() === 'none' ||
@@ -153,13 +153,35 @@ export class GeminiClient implements ILlmClient {
           ? null
           : rawSql;
 
+      // Filter out dummy fallback queries like SELECT 1 WHERE 1 = 0
+      if (normalizedSql) {
+        const compactSql = normalizedSql.toLowerCase().replace(/\s+/g, ' ');
+        if (
+          compactSql.includes('select 1 where 1 = 0') ||
+          compactSql.includes('select 1 where 1=0') ||
+          compactSql === 'select 1' ||
+          compactSql === 'select null'
+        ) {
+          normalizedSql = null;
+        }
+      }
+
+      const rawFollowUp = parsed.followUpQuestion ? parsed.followUpQuestion.trim() : null;
+      const normalizedFollowUp =
+        !rawFollowUp ||
+        rawFollowUp.toLowerCase() === 'null' ||
+        rawFollowUp.toLowerCase() === 'none' ||
+        rawFollowUp === '""'
+          ? null
+          : rawFollowUp;
+
       return {
         reasoning: parsed.reasoning || '',
         answer: parsed.answer || parsed.reasoning || '',
         sql: normalizedSql,
         isAmbiguous: Boolean(parsed.isAmbiguous),
         isRefusal: Boolean(parsed.isRefusal),
-        followUpQuestion: parsed.followUpQuestion ? parsed.followUpQuestion.trim() : null,
+        followUpQuestion: normalizedFollowUp,
       };
     } catch {
       throw new AppError(

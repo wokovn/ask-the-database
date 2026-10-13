@@ -41,6 +41,14 @@ ${context.schemaDescription}
    - You MUST set "followUpQuestion": null.
    - Do NOT propose follow-up questions when the question is already fully clear and specific.
 
+### NONSENSICAL, GIBBERISH & OFF-TOPIC INPUTS:
+1. If the user enters meaningless text, random characters (e.g. 'abcxyz', 'asdf'), greetings, or queries completely unrelated to the shop:
+   - You MUST set "sql": null. NEVER generate dummy SQL queries such as 'SELECT 1 WHERE 1 = 0' or 'SELECT NULL'.
+   - Set "isAmbiguous": false.
+   - Set "followUpQuestion": null.
+   - In "answer", explain politely and concisely in Vietnamese that the input cannot be mapped to the shop database, and invite the user to ask questions about customers, products, or orders.
+
+
 
 ### RESPONSE FIELDS:
 1. "reasoning": Technical deduction or strategy (e.g. which tables were joined, why filters were applied, or why a table is missing). Used internally for logging/debugging.

@@ -16,6 +16,27 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     );
   }
 
+  const hasSql = Boolean(
+    message.sql &&
+      message.sql.trim() !== '' &&
+      message.sql.trim().toLowerCase() !== 'null' &&
+      message.sql.trim().toLowerCase() !== 'none'
+  );
+
+  const hasFollowUp = Boolean(
+    message.followUpQuestion &&
+      message.followUpQuestion.trim() !== '' &&
+      message.followUpQuestion.trim().toLowerCase() !== 'null' &&
+      message.followUpQuestion.trim().toLowerCase() !== 'none'
+  );
+
+  const hasReasoning = Boolean(
+    message.reasoning &&
+      message.reasoning.trim() !== '' &&
+      message.reasoning.trim().toLowerCase() !== 'null' &&
+      message.reasoning.trim() !== message.answer?.trim()
+  );
+
   // Assistant turn
   return (
     <div className="assistant-response">
@@ -40,7 +61,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       )}
 
       {/* Collapsible internal technical reasoning for dev / evaluation */}
-      {message.reasoning && (
+      {hasReasoning && (
         <details className="reasoning-accordion">
           <summary>Chi tiết suy luận kỹ thuật</summary>
           <div className="reasoning-content">{message.reasoning}</div>
@@ -56,14 +77,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
         </div>
       )}
 
-      {/* SQL Block */}
-      {message.sql && <SqlBlock sql={message.sql} />}
+      {/* SQL Block - only shown when valid SQL exists */}
+      {hasSql && <SqlBlock sql={message.sql!} />}
 
-      {/* Query Results Table */}
-      {message.queryResult && <DataTable result={message.queryResult} />}
+      {/* Query Results Table - only shown when valid SQL exists and results are present */}
+      {hasSql && message.queryResult && <DataTable result={message.queryResult} />}
 
-      {/* Follow-up question box */}
-      {message.followUpQuestion && (
+      {/* Follow-up question box - completely hidden if null */}
+      {hasFollowUp && (
         <div className="follow-up-box">
           <span className="follow-up-label">Câu hỏi làm rõ tiếp theo</span>
           <span className="follow-up-text">{message.followUpQuestion}</span>
