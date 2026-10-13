@@ -78,9 +78,46 @@ Xây dựng ứng dụng web tương tác (React + Express + PostgreSQL + Google
   - Nhập câu lệnh SQL timeout (> 5s).
   - Nhập câu hỏi ngẫu nhiên không liên quan.
 
-### Giai đoạn 6: Hoàn thiện Tài liệu (Submit README)
+### Giai đoạn 6: Kiểm thử Tự động (Unit & Integration Tests)
+- [ ] Cấu hình test runner `vitest` và `supertest` cho cả server và client.
+- [ ] **Unit Tests**:
+  - `config/env.test.ts`: Test validation biến môi trường, default fallback, bắt lỗi khi thiếu config.
+  - `prompts/systemPrompt.test.ts`: Test sinh prompt chứa đúng schema và business rules.
+  - `infrastructure/session/sessionStore.test.ts`: Test CRUD session và cơ chế TTL hết hạn.
+  - `services/queryExecutor.test.ts`: Test cơ chế retry 3 lần, cắt trần 100 dòng, timeout handling.
+  - `services/chatService.test.ts`: Test logic phân loại câu hỏi (bình thường, mơ hồ, phá hoại/mutation).
+  - `infrastructure/errors/appError.test.ts`: Test mapping mã lỗi và chuẩn hóa response envelope.
+- [ ] **Integration Tests**:
+  - `tests/integration/db.test.ts`: Kết nối Postgres thật bằng `shop_readonly`, kiểm tra quyền SELECT và xác nhận DELETE/UPDATE/DROP 100% bị từ chối từ DB.
+  - `tests/integration/api.test.ts`: Kiểm tra các endpoint `GET /api/health` và `POST /api/chat`.
+
+### Giai đoạn 7: Hoàn thiện Tài liệu (Submit README)
 - [ ] Tạo file `README.md` chính ở root:
   - Hướng dẫn chạy (Docker, cài đặt, biến môi trường).
   - Model và SDK đã sử dụng.
+  - Hướng dẫn chạy test suite (`npm test`).
   - Giải thích cách xử lý các câu 5–8 và lý do.
   - Những cải tiến nếu có thêm thời gian.
+
+---
+
+## 3. Nguyên tắc Kiểm thử & Thiết kế Dễ kiểm thử (Testability & Integrity Rules)
+
+### A. Nguyên tắc Trung thực trong Kiểm thử (Zero Cheating / No Fake Passes)
+1. **Tuyệt đối không cố tình làm cho test pass**:
+   - Nghiêm cấm mọi hành vi assert giả định (ví dụ `expect(true).toBe(true)`), mock cả hàm đang cần kiểm thử, hoặc viết test hời hợt chỉ để lấy độ phủ (coverage).
+   - Test phải kiểm tra đúng nghiệp vụ thực tế, assert đúng giá trị đầu ra (output) và trạng thái hệ thống.
+   - **Quy tắc Red-Green**: Test PHẢI FAIL nếu mã nguồn bên trong bị sửa sai hoặc gặp lỗi logic.
+2. **Không sửa test để che giấu lỗi code**:
+   - Khi một test case bị fail, phải truy vết và sửa mã nguồn của ứng dụng, KHÔNG ĐƯỢC hạ thấp tiêu chuẩn của test hay sửa giá trị mong đợi để test pass ép buộc (trừ khi có sự thay đổi rõ ràng về yêu cầu nghiệp vụ).
+
+### B. Thiết kế Ứng dụng Dễ kiểm thử (Design for Testability)
+1. **Dependency Injection (DI)**:
+   - Các Service (`ChatService`, `QueryExecutorService`) không trực tiếp khởi tạo singleton nội bộ mà nhận `PostgresPool`, `LlmClient`, và `SessionStore` qua constructor hoặc factory parameters.
+   - Nhờ đó, Unit test có thể inject Mock/Stub một cách dễ dàng và cô lập hoàn toàn môi trường ngoài.
+2. **Phân tách Side-Effects và Pure Functions**:
+   - Tách biệt các hàm xử lý logic thuần túy (như làm sạch chuỗi SQL, parse JSON từ LLM, định dạng tiền tệ VND, kiểm tra regex bảo mật) thành các pure functions riêng biệt để có thể test 100% không cần mock.
+3. **Môi trường Test Độc lập**:
+   - Unit test chạy siêu nhanh trong bộ nhớ (In-memory).
+   - Integration test kiểm thử trực tiếp hành vi thật trên PostgreSQL container.
+
