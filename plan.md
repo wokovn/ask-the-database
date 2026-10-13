@@ -32,14 +32,19 @@ Xây dựng ứng dụng web tương tác (React + Express + PostgreSQL + Google
   - Cấu hình Vanilla CSS Design System (Minimalism theme).
 
 ### Giai đoạn 3: Xây dựng Backend (3-Layer Modular Architecture)
+- [ ] **Config & Prompt Separation (Tuyệt đối không hardcode)**:
+  - `config/env.ts`: Validate và export toàn bộ biến môi trường (PORT, DB credentials, GEMINI_API_KEY, GEMINI_MODEL, MAX_QUERY_ROWS, QUERY_TIMEOUT_MS, MAX_RETRY_ATTEMPTS, SESSION_TTL_MS).
+  - `config/constants.ts`: Các hằng số ứng dụng (Mã lỗi, HTTP status, Table names, Default limits).
+  - `prompts/systemPrompt.ts`: System prompt được tách file riêng, chứa đầy đủ schema metadata, business rules, JSON Schema output, và hướng dẫn xử lý câu hỏi bất thường/mơ hồ.
+  - `prompts/retryPrompt.ts`: Template prompt chuyên dụng cho vòng lặp sửa lỗi SQL khi nhận thông báo lỗi từ Postgres.
 - [ ] **Infrastructure Layer**:
   - `infrastructure/db/postgres.ts`: Quản lý `pg.Pool`, cấu hình timeout, hàm kiểm tra health-check.
   - `infrastructure/llm/geminiClient.ts`: Kết nối `@google/genai`, cấu hình Structured JSON schema, xử lý lỗi API (quota, auth, safety).
-  - `infrastructure/session/sessionStore.ts`: Interface trừu tượng `SessionStore` + implementation `InMemorySessionStore`.
+  - `infrastructure/session/sessionStore.ts`: Interface trừu tượng `SessionStore` + implementation `InMemorySessionStore` (dễ dàng mở rộng Redis).
   - `infrastructure/errors/appError.ts`: Hệ thống phân cấp lỗi và middleware xử lý lỗi toàn cục (Global Error Middleware).
 - [ ] **Service Layer**:
-  - `services/schemaService.ts`: Cung cấp schema metadata và business rules cho prompt.
-  - `services/queryExecutor.ts`: Thực thi query trên DB với giới hạn 100 dòng, timeout 5s, và vòng lặp Retry 3 lần khi SQL lỗi.
+  - `services/schemaService.ts`: Cung cấp schema metadata và business rules động cho prompt.
+  - `services/queryExecutor.ts`: Thực thi query trên DB với giới hạn số dòng, timeout, và vòng lặp Retry 3 lần khi SQL lỗi.
   - `services/chatService.ts`: Điều phối luồng xử lý: kiểm tra câu hỏi -> sinh SQL qua Gemini -> thực thi / retry -> phản hồi follow-up.
 - [ ] **Controller & Route Layer**:
   - `controllers/chatController.ts`: Endpoint `POST /api/chat`.
